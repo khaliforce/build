@@ -1,0 +1,17 @@
+Subject: [PATCH] sunxi: enable D1 DRAM diagnostics in SPL
+
+Print DRAM detection and initialization details during SPL boot.
+
+--- a/drivers/ram/sunxi/dram_sun20i_d1.c
++++ b/drivers/ram/sunxi/dram_sun20i_d1.c
+@@ -11,6 +11,10 @@
+  *
+  * [1] https://github.com/szemzoa/awboot.git
+  */
++
++#ifdef CONFIG_SPL_BUILD
++#define DEBUG
++#endif
+ 
+ #ifndef CONFIG_DRAM_CLK
+ #define CONFIG_DRAM_CLK 792
