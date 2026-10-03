@@ -2,6 +2,9 @@
 # Build SPL and FIT with Armbian's existing OpenSBI and U-Boot package functions.
 function post_family_config__mangopi_source_boot() {
 	declare -g BOOTBRANCH="commit:2e89b706f5c956a70c989cd31665f1429e9a0b48"
+	declare -g ATFBRANCH="tag:v1.9"
+	# OpenSBI 1.9 does not need the legacy 1.5.1 compiler patches.
+	declare -g ATFPATCHDIR="atf-opensbi-v1.9"
 	declare -g UBOOT_TARGET_MAP=";;u-boot-sunxi-with-spl.bin"
 	declare -g IMAGE_PARTITION_TABLE="gpt" OFFSET=4 BOOTSIZE=0 BOOTFS_TYPE="" SRC_EXTLINUX=yes
 	local input_hash
