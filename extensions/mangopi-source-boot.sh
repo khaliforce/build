@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Build SPL and FIT with Armbian's existing OpenSBI and U-Boot package functions.
 function post_family_config__mangopi_source_boot() {
-	declare -g BOOTBRANCH="commit:2e89b706f5c956a70c989cd31665f1429e9a0b48"
+	declare -g BOOTSOURCE="https://github.com/u-boot/u-boot.git"
+	declare -g BOOTBRANCH="tag:v2026.07"
+	declare -g BOOTPATCHDIR="u-boot-nezha-2026.07"
 	declare -g ATFBRANCH="tag:v1.9"
 	# OpenSBI 1.9 does not need the legacy 1.5.1 compiler patches.
 	declare -g ATFPATCHDIR="atf-opensbi-v1.9"

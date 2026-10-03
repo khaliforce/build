@@ -1,0 +1,106 @@
+From bd156220afc0887080682d79bf421b0644a50d57 Mon Sep 17 00:00:00 2001
+From: khaliforce <kforce@gmail.com>
+Date: Sun, 4 Oct 2026 08:15:11 +0900
+Subject: [PATCH] mangopi-mq: retain the tested SPL firmware settings
+
+---
+ arch/riscv/Kconfig                 |  6 ++++++
+ arch/riscv/dts/sunxi-u-boot.dtsi   |  9 +++++++++
+ board/sunxi/board-riscv.c          |  5 +++++
+ drivers/ram/sunxi/dram_sun20i_d1.c |  4 ++++
+ include/configs/sunxi-common.h     | 11 ++++++++++-
+ 5 files changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 36d3df53..d476589d 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -75,6 +75,12 @@ config TARGET_ASPEED_AST2700_IBEX
+ 
+ endchoice
+ 
++config SUNXI_MANGOPI_MQ_SPL
++	bool "MangoPi MQ Pro SPL memory layout"
++	depends on TARGET_SUN20I_D1 && SPL
++	help
++	  Use the tested kernel, DTB, and initrd load addresses.
++
+ config SYS_ICACHE_OFF
+ 	bool "Do not enable icache"
+ 	help
+diff --git a/arch/riscv/dts/sunxi-u-boot.dtsi b/arch/riscv/dts/sunxi-u-boot.dtsi
+index 55645624..a4b76c8b 100644
+--- a/arch/riscv/dts/sunxi-u-boot.dtsi
++++ b/arch/riscv/dts/sunxi-u-boot.dtsi
+@@ -9,6 +9,15 @@
+ 
+ 	soc {
+ 		bootph-all;
++#ifdef CONFIG_TARGET_SUN20I_D1
++		/* OpenSBI needs the machine-mode timer and IPI device. */
++		clint@14000000 {
++			compatible = "allwinner,sun20i-d1-clint", "thead,c900-clint";
++			reg = <0x14000000 0xc000>;
++			reg-io-width = <4>;
++			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
++		};
++#endif
+ 	};
+ };
+ 
+diff --git a/board/sunxi/board-riscv.c b/board/sunxi/board-riscv.c
+index 5b68c301..05f4b8f6 100644
+--- a/board/sunxi/board-riscv.c
++++ b/board/sunxi/board-riscv.c
+@@ -601,6 +601,11 @@ int ft_board_setup(void *blob, struct bd_info *bd)
+ {
+ 	int __maybe_unused r;
+ 
++	/* Pass detected DRAM to the kernel DTB, as upstream VisionFive2 does. */
++	r = fdt_fixup_memory(blob, gd->ram_base, gd->ram_size);
++	if (r)
++		return r;
++
+ 	/*
+ 	 * Call setup_environment and fdt_fixup_ethernet again
+ 	 * in case the boot fdt has ethernet aliases the u-boot
+diff --git a/drivers/ram/sunxi/dram_sun20i_d1.c b/drivers/ram/sunxi/dram_sun20i_d1.c
+index 79cf0a51..0a3ac1c9 100644
+--- a/drivers/ram/sunxi/dram_sun20i_d1.c
++++ b/drivers/ram/sunxi/dram_sun20i_d1.c
+@@ -12,6 +12,10 @@
+  * [1] https://github.com/szemzoa/awboot.git
+  */
+ 
++#ifdef CONFIG_SPL_BUILD
++#define DEBUG
++#endif
++
+ #include <asm/io.h>
+ #include <config.h>
+ #ifdef CONFIG_RAM
+diff --git a/include/configs/sunxi-common.h b/include/configs/sunxi-common.h
+index 49d5617f..05a546d3 100644
+--- a/include/configs/sunxi-common.h
++++ b/include/configs/sunxi-common.h
+@@ -68,7 +68,16 @@
+  * We cannot use expressions here, because expressions won't be evaluated in
+  * autoconf.mk.
+  */
+-#ifdef CONFIG_ARM64
++#ifdef CONFIG_SUNXI_MANGOPI_MQ_SPL
++#define BOOTM_SIZE        __stringify(0x10000000)
++#define KERNEL_ADDR_R     __stringify(0x40200000)
++#define FDT_ADDR_R        __stringify(0x46000000)
++#define SCRIPT_ADDR_R     __stringify(0x47000000)
++#define PXEFILE_ADDR_R    __stringify(0x47000000)
++#define FDTOVERLAY_ADDR_R __stringify(SDRAM_OFFSET(1B00000))
++#define RAMDISK_ADDR_R    __stringify(0x48000000)
++
++#elif defined(CONFIG_ARM64)
+ /*
+  * Boards seem to come with at least 512MB of DRAM.
+  * The kernel should go at 512K, which is the default text offset (that will
+-- 
+2.43.0
+
