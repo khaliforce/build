@@ -7,10 +7,18 @@ INTRODUCED="2021"
 KERNEL_TARGET="edge"
 BOOT_FDT_FILE="allwinner/sun20i-d1-nezha.dtb"
 SRC_EXTLINUX="yes"
-SRC_CMDLINE="console=ttyS0,115200n8 earlycon=sbi cma=96M rootflags=data=writeback stmmaceth=chain_mode:1 rw"
+SRC_CMDLINE="console=ttyS0,115200n8 console=tty0 earlycon=sbi cma=96M rootflags=data=writeback stmmaceth=chain_mode:1 rw"
 BOOTCONFIG="nezha_defconfig"
 
 function extension_finish_config__mangopi_boot_logo() {
-	PLYMOUTH=yes
-	BOOT_LOGO=yes
+	if [[ $BUILD_MINIMAL == yes ]]; then
+		PLYMOUTH=no
+		BOOT_LOGO=no
+	else
+		PLYMOUTH=yes
+		BOOT_LOGO=yes
+		if [[ $BUILD_DESKTOP == yes ]]; then
+			SRC_CMDLINE=${SRC_CMDLINE// console=tty0/}
+		fi
+	fi
 }
