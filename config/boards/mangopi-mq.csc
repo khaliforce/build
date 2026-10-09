@@ -35,6 +35,20 @@ function post_family_config__mangopi_source_boot() {
 		dd if="$image" of="${2}" bs=512 seek=256 conv=notrunc
 	}
 }
+# Avoid legacy tracing mounts in MQ Pro hardware logs.
+function post_family_tweaks_bsp__mangopi_mmc_monitor() {
+	local monitor="${destination}/usr/lib/armbian/armbian-hardware-monitor"
+	grep -Fxq 'get_flash_information() {' "${monitor}" &&
+		grep -Fq 'find /sys -name oemid' "${monitor}" &&
+		grep -Fq 'DeviceNode="${Device%/*}"' "${monitor}" ||
+		exit_with_error "Unexpected hardware monitor format"
+	sed -i \
+		-e 's@^get_flash_information() {$@&\n\t[[ -d /sys/bus/mmc/devices ]] || return 0@' \
+		-e 's@find /sys -name oemid@find -L /sys/bus/mmc/devices -maxdepth 2 -name oemid@' \
+		-e 's@DeviceNode="${Device%/\*}"@DeviceNode="$(readlink -f "${Device%/*}")"@' \
+		"${monitor}"
+}
+
 # Keep GPT entries outside the reserved firmware area.
 function post_create_partitions__mangopi_source_boot() {
 	# Keep the verified GPT and ext4 layout during the SPL transition.
