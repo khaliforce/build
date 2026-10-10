@@ -1,0 +1,7 @@
+{
+  "repository": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware/",
+  "commit": "8f9cd8ebb1633d4b631df8ebe35f143d858471ac",
+  "file": "rtl_nic/rtl8261c.bin",
+  "sha256": "2d93b7cd7ce7aae460ebca41dc5cca0ad80770d2129806ce46cc4e4064000bdc",
+  "license": "LICENSE.r8169"
+}

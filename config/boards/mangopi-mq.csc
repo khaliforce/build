@@ -10,6 +10,7 @@ SRC_EXTLINUX="yes"
 SRC_CMDLINE="console=ttyS0,115200n8 console=tty0 earlycon=sbi rootflags=data=writeback stmmaceth=chain_mode:1 rw"
 BOOTCONFIG="nezha_defconfig"
 
+enable_extension "mangopi-linux-port"
 enable_extension "mangopi-rtc"
 
 # Build MQ Pro SPL/FIT with the existing firmware package functions.
