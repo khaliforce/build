@@ -11,6 +11,8 @@ enable_extension "mangopi-opt-plymouth-logo"
 enable_extension "mangopi-opt-xfce-cached-fb"
 enable_extension "mangopi-opt-xfce-console-setup-off"
 enable_extension "mangopi-opt-xfce-splash-bg"
+enable_extension "mangopi-opt-xfce-video"
+enable_extension "mangopi-opt-xfce-thunar-daemon"
 
 function post_family_config__965_mangopi_opt_kernel_xfce() {
 	[[ ${BOARD} == mangopi-mq && ${BRANCH} == edge ]] || return 0
