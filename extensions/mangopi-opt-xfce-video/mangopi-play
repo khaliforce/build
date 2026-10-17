@@ -1,0 +1,59 @@
+#!/bin/sh
+# Play an H.264 MP4 file full screen on HDMI with the Cedrus hardware decoder.
+# The display hardware does the color conversion and scaling. No CPU copy.
+# Works from a text console and from a terminal inside the X desktop.
+# In the desktop it switches to another virtual terminal while the video plays,
+# so X gives the display to the video. Then it switches back.
+set -u
+if [ $# -ne 1 ]; then
+	echo "usage: mangopi-play FILE.mp4" >&2
+	exit 2
+fi
+if [ "$(id -u)" -ne 0 ]; then
+	exec sudo "$0" "$@"
+fi
+# Print the id of the first plane whose type value is $1 (Overlay=0, Primary=1).
+plane_id() {
+	modetest -M sun4i-drm -p 2>/dev/null | awk -v want="$1" '
+		/^[0-9]+\t/ { id = $1 }
+		/^\t[0-9]+ type:/ { t = 1; next }
+		t && /value:/ { if ($2 == want) { print id; exit } t = 0 }'
+}
+primary=$(plane_id 1)
+overlay=$(plane_id 0)
+if [ -z "$primary" ] || [ -z "$overlay" ]; then
+	echo "mangopi-play: display planes not found" >&2
+	exit 1
+fi
+
+# If X runs on the active terminal, move to another terminal. X then drops the display.
+orig_vt=$(cat /sys/class/tty/tty0/active 2>/dev/null)
+x_vt=$(ps -o args= -C Xorg 2>/dev/null | sed -n 's/.* vt\([0-9][0-9]*\).*/tty\1/p' | head -n 1)
+switched=0
+if [ -n "$x_vt" ] && [ "$orig_vt" = "$x_vt" ]; then
+	target=2
+	[ "tty$target" = "$x_vt" ] && target=3
+	chvt "$target" && switched=1
+	sleep 1
+fi
+
+restore() {
+	modetest -M sun4i-drm -a -w "$primary:zpos:1" >/dev/null 2>&1
+	modetest -M sun4i-drm -a -w "$overlay:zpos:0" >/dev/null 2>&1
+	[ "$switched" = 1 ] && chvt "${orig_vt#tty}"
+}
+trap restore EXIT INT TERM
+
+# The video plane is below the console plane. Lower the console plane during playback.
+modetest -M sun4i-drm -a -w "$primary:zpos:0" >/dev/null 2>&1
+# Explicit pipeline: the decoder output goes straight to the display plane.
+# A file without audio needs a pipeline without the audio branch. Else the audio sink never starts.
+VIDEO="d.video_0 ! queue ! h264parse ! v4l2slh264dec ! kmssink driver-name=sun4i-drm plane-properties=s,zpos=1"
+AUDIO="d.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! alsasink device=plughw:0"
+if gst-discoverer-1.0 "$1" 2>/dev/null | grep -q '^ *audio #'; then
+	# shellcheck disable=SC2086
+	gst-launch-1.0 -q filesrc location="$1" ! qtdemux name=d $VIDEO $AUDIO
+else
+	# shellcheck disable=SC2086
+	gst-launch-1.0 -q filesrc location="$1" ! qtdemux name=d $VIDEO
+fi
