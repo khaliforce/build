@@ -1,0 +1,19 @@
+#!/bin/sh
+# Play an H.264 MP4 file in a window on the X desktop.
+# The Cedrus hardware decodes the video. The vector converter makes the picture for X.
+# Needs mitigations=off (vector unit). Without it, the slow scalar code runs.
+# For full screen use mangopi-play from a text console.
+set -u
+if [ $# -ne 1 ]; then
+	echo "usage: mangopi-video FILE.mp4" >&2
+	exit 2
+fi
+VIDEO="d.video_0 ! queue ! h264parse ! v4l2slh264dec ! video/x-raw,format=NV12 ! mangopinv12conv ! ximagesink"
+AUDIO="d.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! alsasink device=plughw:0"
+if gst-discoverer-1.0 "$1" 2>/dev/null | grep -q '^ *audio #'; then
+	# shellcheck disable=SC2086
+	exec gst-launch-1.0 -q filesrc location="$1" ! qtdemux name=d $VIDEO $AUDIO
+else
+	# shellcheck disable=SC2086
+	exec gst-launch-1.0 -q filesrc location="$1" ! qtdemux name=d $VIDEO
+fi
