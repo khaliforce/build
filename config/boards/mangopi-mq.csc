@@ -49,3 +49,7 @@ function post_config_uboot_target__mangopi_source_boot() {
 		--enable SUNXI_MANGOPI_MQ_SPL
 	run_host_command_logged make CROSS_COMPILE=riscv64-linux-gnu- olddefconfig
 }
+# The hardware monitor walks /sys at each boot and triggers the tracefs automount notice.
+function post_customize_image__mangopi_mask_hw_monitor() {
+	chroot_sdcard systemctl mask armbian-hardware-monitor.service
+}
